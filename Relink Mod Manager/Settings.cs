@@ -36,9 +36,9 @@ namespace Relink_Mod_Manager
             GameExecutableFilePath = "";
             CopyModArchivesToStorage = true;
             CheckForUpdateOnStartup = true;
-            ModManagerLatestVersionCheckURL = "https://raw.githubusercontent.com/Relink-Mod-Manager/Mod-Manager-Metadata/master/LatestVersion.txt";
-            ModManagerAlertsURL = "https://raw.githubusercontent.com/Relink-Mod-Manager/Mod-Manager-Metadata/master/Alerts.json";
-            ModManagerUpdateURL = "https://github.com/Relink-Mod-Manager/Relink-Mod-Manager";
+            ModManagerLatestVersionCheckURL = "https://raw.githubusercontent.com/Zetas-Workshop/Mod-Manager-Metadata/master/LatestVersion.txt";
+            ModManagerAlertsURL = "https://raw.githubusercontent.com/Zetas-Workshop/Mod-Manager-Metadata/master/Alerts.json";
+            ModManagerUpdateURL = "https://github.com/Zetas-Workshop/Relink-Mod-Manager/releases";
             ReduceVolatileModWarningText = false;
             ManagerDirectory = AppDomain.CurrentDomain.BaseDirectory;
             ModArchivesDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Relink Mod Archives");
