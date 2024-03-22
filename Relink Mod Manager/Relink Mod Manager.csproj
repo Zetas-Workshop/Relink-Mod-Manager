@@ -1,0 +1,73 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Relink_Mod_Manager</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ApplicationIcon>Resources\Icon.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Fonts\FAS.ttf" />
+    <None Remove="Fonts\SourceSansPro-Bold.ttf" />
+    <None Remove="Fonts\SourceSansPro-BoldItalic.ttf" />
+    <None Remove="Fonts\SourceSansPro-Italic.ttf" />
+    <None Remove="Fonts\SourceSansPro-Regular.ttf" />
+    <None Remove="Fonts\UbuntuMono-Regular.ttf" />
+    <None Remove="Shaders\GLSL\imgui-frag.glsl" />
+    <None Remove="Shaders\GLSL\imgui-vertex.glsl" />
+    <None Remove="Shaders\HLSL\imgui-frag.hlsl.bytes" />
+    <None Remove="Shaders\HLSL\imgui-vertex.hlsl.bytes" />
+    <None Remove="Shaders\Metal\imgui-frag.metallib" />
+    <None Remove="Shaders\Metal\imgui-vertex.metallib" />
+    <None Remove="Shaders\SPIR-V\imgui-frag.spv" />
+    <None Remove="Shaders\SPIR-V\imgui-vertex.spv" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Resources\Icon.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Fonts\FAS.ttf" />
+    <EmbeddedResource Include="Fonts\SourceSansPro-Bold.ttf" />
+    <EmbeddedResource Include="Fonts\SourceSansPro-BoldItalic.ttf" />
+    <EmbeddedResource Include="Fonts\SourceSansPro-Italic.ttf" />
+    <EmbeddedResource Include="Fonts\SourceSansPro-Regular.ttf" />
+    <EmbeddedResource Include="Fonts\UbuntuMono-Regular.ttf" />
+    <EmbeddedResource Include="Shaders\GLSL\imgui-frag.glsl" />
+    <EmbeddedResource Include="Shaders\GLSL\imgui-vertex.glsl" />
+    <EmbeddedResource Include="Shaders\HLSL\imgui-frag.hlsl.bytes" />
+    <EmbeddedResource Include="Shaders\HLSL\imgui-vertex.hlsl.bytes" />
+    <EmbeddedResource Include="Shaders\Metal\imgui-frag.metallib" />
+    <EmbeddedResource Include="Shaders\Metal\imgui-vertex.metallib" />
+    <EmbeddedResource Include="Shaders\SPIR-V\imgui-frag.spv" />
+    <EmbeddedResource Include="Shaders\SPIR-V\imgui-vertex.spv" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FlatSharp.Compiler" Version="7.4.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="FlatSharp.Runtime" Version="7.4.0" />
+    <PackageReference Include="ImGui.NET" Version="1.90.1.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="System.IO.Hashing" Version="8.0.0" />
+    <PackageReference Include="Veldrid" Version="4.9.0" />
+    <PackageReference Include="Veldrid.StartupUtilities" Version="4.9.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FlatSharpSchema Include="FlatBuffers/IndexFile.fbs" />
+    <FlatSharpSchema Include="FlatBuffers/MInfo_ModelInfo.fbs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <TrimmerRootAssembly Include="Newtonsoft.Json" />
+  </ItemGroup>
+
+</Project>
