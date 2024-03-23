@@ -70,6 +70,12 @@
 
   <ItemGroup>
     <TrimmerRootAssembly Include="Newtonsoft.Json" />
+    <TrimmerRootAssembly Include="Relink Mod Manager" />
+    <TrimmerRootAssembly Include="Veldrid" />
+    <TrimmerRootAssembly Include="Veldrid.SDL2" />
+    <TrimmerRootAssembly Include="Veldrid.StartupUtilities" />
+    <TrimmerRootAssembly Include="ImGui.NET" />
+    <TrimmerRootAssembly Include="FlatSharp.Runtime" />
   </ItemGroup>
 
 </Project>
