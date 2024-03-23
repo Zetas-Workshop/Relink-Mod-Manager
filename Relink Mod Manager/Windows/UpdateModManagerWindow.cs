@@ -26,6 +26,8 @@ namespace Relink_Mod_Manager.Windows
 
             if (ImGui.BeginPopupModal("Relink Mod Manager Update Available!###UpdateModManagerWindow"))
             {
+                Settings.WaitingOnStartupPopup = true;
+
                 if (ImGui.BeginChild("##AlertChild", new Vector2(ImGui.GetWindowContentRegionMax().X, ImGui.GetWindowContentRegionMax().Y - ImGui.GetItemRectSize().Y * 3)))
                 {
                     ImGui.Text("There is a new update available for Relink Mod Manager!");
@@ -44,6 +46,7 @@ namespace Relink_Mod_Manager.Windows
                         FileName = Settings.ModManagerUpdateURL,
                         UseShellExecute = true,
                     });
+                    Settings.WaitingOnStartupPopup = false;
                     ImGui.CloseCurrentPopup();
                 }
                 ImGui.EndDisabled();
@@ -59,6 +62,7 @@ namespace Relink_Mod_Manager.Windows
                 ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - Util.BUTTON_ITEM_WIDTH_SECOND);
                 if (ImGui.Button("Remind Me Later", new Vector2(Util.BUTTON_ITEM_WIDTH_SECOND, 0)))
                 {
+                    Settings.WaitingOnStartupPopup = false;
                     ImGui.CloseCurrentPopup();
                 }
                 ImGui.EndPopup();

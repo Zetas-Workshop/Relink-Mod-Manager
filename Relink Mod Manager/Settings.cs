@@ -29,6 +29,9 @@ namespace Relink_Mod_Manager
 
         public List<ModEntry> ModList;
 
+        [JsonIgnore]
+        public bool WaitingOnStartupPopup;
+
         public Settings()
         {
             ModManagerConfigFormatVersion = 1;
@@ -47,6 +50,8 @@ namespace Relink_Mod_Manager
             ManagerAppDataDirectory = Path.Combine(AppData, "Relink Mod Manager");
 
             ModManagerVersion = new Version();
+
+            WaitingOnStartupPopup = false;
         }
 
         public void Load()

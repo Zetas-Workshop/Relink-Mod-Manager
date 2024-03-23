@@ -33,6 +33,8 @@ namespace Relink_Mod_Manager.Windows
 
             if (ImGui.BeginPopupModal("Relink Mod Manager Alert!###ModManagerAlertWindow"))
             {
+                Window.Settings.WaitingOnStartupPopup = true;
+
                 if (ImGui.BeginChild("##AlertChild", new Vector2(ImGui.GetWindowContentRegionMax().X, ImGui.GetWindowContentRegionMax().Y - ImGui.GetItemRectSize().Y * 3)))
                 {
                     ImGui.TextWrapped(_modManagerAlert.Alert);
@@ -51,6 +53,7 @@ namespace Relink_Mod_Manager.Windows
                             FileName = _modManagerAlert.Link,
                             UseShellExecute = true,
                         });
+                        Window.Settings.WaitingOnStartupPopup = false;
                         ImGui.CloseCurrentPopup();
                     }
                     ImGui.SetItemTooltip($"Click to open [ {_modManagerAlert.Link} ]");
@@ -60,6 +63,7 @@ namespace Relink_Mod_Manager.Windows
                 ImGui.SetCursorPosX(ImGui.GetWindowContentRegionMax().X - Util.BUTTON_ITEM_WIDTH_SECOND);
                 if (ImGui.Button("Remind Me Later", new Vector2(Util.BUTTON_ITEM_WIDTH_SECOND, 0)))
                 {
+                    Window.Settings.WaitingOnStartupPopup = false;
                     ImGui.CloseCurrentPopup();
                 }
 

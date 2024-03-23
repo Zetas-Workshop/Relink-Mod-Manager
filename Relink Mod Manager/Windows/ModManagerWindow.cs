@@ -69,7 +69,8 @@ namespace Relink_Mod_Manager.Windows
                 PromptEditModPackFileBrowser = false;
             }
 
-            if (Settings.GameExecutableFilePath == "" && PromptFTUE)
+            // Allow FTUEWindow to still appear after user was prompted with Alerts and Updates in case they're also new but on an old version
+            if (Settings.GameExecutableFilePath == "" && PromptFTUE && !Settings.WaitingOnStartupPopup)
             {
                 ImGui.OpenPopup("###FirstTimeGameSelectionWindow");
                 PromptFTUE = false;
