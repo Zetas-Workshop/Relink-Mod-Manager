@@ -86,6 +86,84 @@ namespace Relink_Mod_Manager.Windows
             }
         }
 
+        /// <summary>
+        /// Configures the Mod Creation process to an existing Reloaded II Mod Pack that will end up being upgraded to our Mod Pack type
+        /// </summary>
+        /// <param name="ModPack">Reloaded II Mod Pack to inherit data from.</param>
+        /// <param name="ModPackFilePath">This should be the '/data/' directory inside a Reloaded II Mod structure.</param>
+        public static void InitializeExternalCreationFromReloaded(ModPackageReloaded ModPack, string ModPackFilePath)
+        {
+            InitializeNewCreation();
+
+            ModPackage.Name = ModPack.ModName;
+            ModPackage.Author = ModPack.ModAuthor;
+            ModPackage.Version = ModPack.ModVersion;
+            ModPackage.Description = $"[Auto-Upgraded Reloaded II Mod] {ModPack.ModDescription}";
+            ModPackage.URL = ModPack.ProjectUrl;
+
+            NewGroupNameInput = "";
+            GroupOptionNameInput = [ "" ];
+            IncludedModFilesList = new Dictionary<string, string>();
+            BaseModPathDirectory = Path.GetDirectoryName(ModPackFilePath);
+            IncludeUnreferencedFiles = false;
+            PromptModCreationCompleteDialog = false;
+            ModCreationError = "";
+
+            var CoreModGroup = new ModGroups()
+            {
+                GroupName = "Core Files",
+                SelectionType = SelectionType.Single
+            };
+            var BaseGroupOption = new ModOption()
+            {
+                Name = "Base Files",
+                IsChecked = true,
+                Description = ""
+            };
+
+            // Rebuild the included mod files list as if a directory for a new mod was selected
+            var SelectedModDirectoryInfo = new DirectoryInfo(BaseModPathDirectory);
+            var AllDirectoryFiles = SelectedModDirectoryInfo.GetFiles("*", SearchOption.AllDirectories);
+
+            foreach (var ModFilePath in AllDirectoryFiles)
+            {
+                // Exclude the json file that controls the mod pack from being a valid inclusion item
+                if (ModFilePath.Name != "ModConfig.json")
+                {
+                    var FilePath = new ModFilePath();
+                    FilePath.SourcePath = ModFilePath.FullName;
+                    FilePath.DestinationPath = ModFilePath.FullName.Remove(0, BaseModPathDirectory.Length + 1);
+                    BaseGroupOption.FilePaths.Add(FilePath);
+
+                    // Automatically reference all files to be Group 0, Option 0, Binding Number
+                    IncludedModFilesList.Add(ModFilePath.FullName, $"G0O0B{IncludedModFilesList.Count}");
+                }
+            }
+
+            CoreModGroup.OptionList.Add(BaseGroupOption);
+            ModPackage.ModGroups.Add(CoreModGroup);
+        }
+
+        /// <summary>
+        /// Writes the currently configured Reloaded II parsed Mod Pack to the specified path.
+        /// </summary>
+        /// <param name="OutputModPackPath">Absolute ZIP Archive file path to write.</param>
+        /// <returns></returns>
+        public static bool WriteReloadedToModPack(string OutputModPackPath)
+        {
+            // Finding a valid and suitable name has been done for us already
+            WritePackToFile(OutputModPackPath);
+
+            if (ModCreationError == "")
+            {
+                // There were no errors, we're good to return back and handle importing
+                return true;
+            }
+
+            // In this specific case, we don't care what the error was, we'll handle it elsewhere
+            return false;
+        }
+
         public static void Draw()
         {
             SubmitContent();

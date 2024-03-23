@@ -14,6 +14,7 @@ namespace Relink_Mod_Manager
     public class DataManager
     {
         // Base functionality of handling data.i archives from https://github.com/WistfulHopes/gbfrelink.utility.manager
+        // See 'Third Party Licenses' for details
 
         private IndexFile _index;
         private string _gameDirectory;

@@ -9,6 +9,8 @@ namespace Relink_Mod_Manager
     public static class Extensions
     {
         // BinarySearch and AddSorted from https://github.com/WistfulHopes/gbfrelink.utility.manager
+        // See 'Third Party Licenses' for details
+
         public static int BinarySearch<T>(this IList<T> list, T value, IComparer<T> comparer = default)
         {
             ArgumentNullException.ThrowIfNull(list);

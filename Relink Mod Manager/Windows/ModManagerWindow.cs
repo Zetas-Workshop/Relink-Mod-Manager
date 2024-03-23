@@ -11,6 +11,7 @@ using GBFRDataTools.Entities;
 using System.IO.Compression;
 using Relink_Mod_Manager.Widgets;
 using Relink_Mod_Manager.Dialogs;
+using static Relink_Mod_Manager.Widgets.ImFileBrowser;
 
 namespace Relink_Mod_Manager.Windows
 {
@@ -316,9 +317,27 @@ namespace Relink_Mod_Manager.Windows
             {
                 foreach (var mod in SelectedFilePaths)
                 {
+                    // Note: We successfully read and import JSON mods but we don't support installing them.
+                    // See 'InstallMods' function for where the JSON condition is performed.
+                    // There's no strong reason for why we don't aside from wanting the archive storage to be consistent.
+                    // Keeping everything in consistent Mod Pack ZIPs allows us to ensure a level of file integrity and
+                    // have an easier time with interop tool plans.
+                    //
+                    // This could potentially be confusing for users.
+                    // Right now selecting JSON files is just to trigger the Reloaded II auto-upgrade flow.
+
                     ModPackage modPackage = ReadModArchive(mod);
+
                     if (modPackage == null || modPackage.ModFormatVersion == null)
                     {
+                        // Try to treat this as a Reloaded Mod, if it's not then we only wasted a little time
+                        // We're going to attempt a silent in-place upgrade and import
+                        // The function says Read, but it actually will do it all
+                        if (ReadReloadedModArchive(mod))
+                        {
+                            continue;
+                        }
+
                         // Inform user that they had an invalid mod package and request they verify validity
                         UnsupportedModsList.Add(Path.GetFileName(mod));
                         PromptImportModErrorWindow = true;
@@ -365,7 +384,7 @@ namespace Relink_Mod_Manager.Windows
                     }
                 }
             }, title: "Select Mod Packages To Import...",
-            filter: "Mod Package (*.zip)|*.zip|JSON Files (*.json)|*.json|All Files (*.*)|*.*", filterIndex: 0);
+            filter: "Mod Package (*.zip)|*.zip|Reloaded II JSON Files (*.json)|*.json|All Files (*.*)|*.*", filterIndex: 0);
         }
 
         void OpenEditModPackFileBrowser()
@@ -594,6 +613,84 @@ namespace Relink_Mod_Manager.Windows
                 }
             }
             return null;
+        }
+
+        public bool ReadReloadedModArchive(string ModFilePath)
+        {
+            if (Path.Exists(ModFilePath))
+            {
+                if (Path.GetFileName(ModFilePath) == "ModConfig.json")
+                {
+                    ModPackageReloaded ModConfig = JsonConvert.DeserializeObject<ModPackageReloaded>(File.ReadAllText(ModFilePath));
+                    if (!string.IsNullOrEmpty(ModConfig.ModId))
+                    {
+                        // Found a Reloaded mod, we'll perform a silent in-place upgrade to a supported Mod Pack
+                        string ModFolder = Path.GetDirectoryName(ModFilePath);
+                        string DataFolder = Path.Combine(ModFolder, "GBFR", "data");
+                        
+                        if (Directory.Exists(DataFolder))
+                        {
+                            // Take all of the files and throw them into a new Mod Pack with a single Enable option
+                            // We're only focused on in-place silent upgrading. More advanced conversions happen elsewhere
+                            CreateModPackWindow.InitializeExternalCreationFromReloaded(ModConfig, DataFolder);
+
+                            string ModUpgradeDir = Path.Combine(Settings.ModArchivesDirectory, "ReloadedUpgrades");
+                            bool IsUpgradeSuccess = false;
+                            string FinalArchivePath = "";
+                            string FinalStoragePath = "";
+
+                            for (int i = 2; i < 10; i++)
+                            {
+                                string NewFileName = $"{ModConfig.ModName} ({i}).zip";
+                                string NewAbsolutePath = Path.Combine(Settings.ModArchivesDirectory, NewFileName);
+                                string UpgradeAbsolutePath = Path.Combine(ModUpgradeDir, NewFileName);
+                                if (!File.Exists(NewAbsolutePath) && !File.Exists(UpgradeAbsolutePath))
+                                {
+                                    // We've found a new valid name, time to use it
+                                    Directory.CreateDirectory(ModUpgradeDir);
+                                    IsUpgradeSuccess = CreateModPackWindow.WriteReloadedToModPack(UpgradeAbsolutePath);
+                                    FinalArchivePath = UpgradeAbsolutePath;
+                                    FinalStoragePath = NewAbsolutePath;
+                                    break;
+                                }
+                            }
+
+                            if (IsUpgradeSuccess)
+                            {
+                                ModPackage modPackage = ReadModArchive(FinalArchivePath);
+
+                                ModEntry modEntry = new ModEntry()
+                                {
+                                    Name = modPackage.Name,
+                                    ModPack = modPackage,
+                                    IsEnabled = false,
+                                    IsUsingArchiveStorage = true,
+                                    ModArchivePath = FinalStoragePath
+                                };
+
+                                Settings.ModList.Add(modEntry);
+
+                                CopyModArchiveToStorage(FinalArchivePath);
+
+                                // Clean up the temporary Mod Pack in the upgrade folder
+                                File.Delete(FinalArchivePath);
+
+                                // TODO: Should we remove the (hopefully now empty) ReloadedUpgrades folder each time as well?
+
+                                Settings.Save();
+                                return true;
+                            }
+                            else
+                            {
+                                Console.WriteLine("Error upgrading Reloaded II Mod to Relink Mod Manager Mod Pack!");
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return false;
         }
 
         public void CopyModArchiveToStorage(string ModFilePath, string NewFileNameWhenStored = "")
