@@ -263,22 +263,7 @@ namespace Relink_Mod_Manager.Windows
                     {
                         Console.WriteLine($"Selected Path: {SelectedFolderPath}");
                         BaseModPathDirectory = SelectedFolderPath;
-                        var SelectedModDirectoryInfo = new DirectoryInfo(SelectedFolderPath);
-                        var AllDirectoryFiles = SelectedModDirectoryInfo.GetFiles("*", SearchOption.AllDirectories);
-                        Dictionary<string, string> TempModFilesList = new Dictionary<string, string>();
-
-                        foreach (var ModFilePath in AllDirectoryFiles)
-                        {
-                            if (IncludedModFilesList.ContainsKey(ModFilePath.FullName))
-                            {
-                                TempModFilesList.Add(ModFilePath.FullName, IncludedModFilesList[ModFilePath.FullName]);
-                            }
-                            else
-                            {
-                                TempModFilesList.Add(ModFilePath.FullName, "");
-                            }
-                        }
-                        IncludedModFilesList = TempModFilesList;
+                        RefreshModWorkingDirectory();
                     }, title: "Select your base mod folder...");
                 }
                 ImGui.SetItemTooltip("Set the base folder of your working mod files directory.\nTypically this is one folder outside your 'data' directory.");
@@ -289,22 +274,7 @@ namespace Relink_Mod_Manager.Windows
                 {
                     if (Directory.Exists(BaseModPathDirectory))
                     {
-                        var SelectedModDirectoryInfo = new DirectoryInfo(BaseModPathDirectory);
-                        var AllDirectoryFiles = SelectedModDirectoryInfo.GetFiles("*", SearchOption.AllDirectories);
-                        Dictionary<string, string> TempModFilesList = new Dictionary<string, string>();
-
-                        foreach (var ModFilePath in AllDirectoryFiles)
-                        {
-                            if (IncludedModFilesList.ContainsKey(ModFilePath.FullName))
-                            {
-                                TempModFilesList.Add(ModFilePath.FullName, IncludedModFilesList[ModFilePath.FullName]);
-                            }
-                            else
-                            {
-                                TempModFilesList.Add(ModFilePath.FullName, "");
-                            }
-                        }
-                        IncludedModFilesList = TempModFilesList;
+                        RefreshModWorkingDirectory();
                     }
                     else
                     {
@@ -665,6 +635,64 @@ namespace Relink_Mod_Manager.Windows
             }
 
             ImGui.PopStyleColor();
+        }
+
+        static void RefreshModWorkingDirectory()
+        {
+            var SelectedModDirectoryInfo = new DirectoryInfo(BaseModPathDirectory);
+            var AllDirectoryFiles = SelectedModDirectoryInfo.GetFiles("*", SearchOption.AllDirectories);
+            Dictionary<string, string> TempModFilesList = new Dictionary<string, string>();
+
+            foreach (var ModFilePath in AllDirectoryFiles)
+            {
+                if (IncludedModFilesList.ContainsKey(ModFilePath.FullName))
+                {
+                    TempModFilesList.Add(ModFilePath.FullName, IncludedModFilesList[ModFilePath.FullName]);
+                }
+                else
+                {
+                    TempModFilesList.Add(ModFilePath.FullName, "");
+                    IncludedModFilesList.Add(ModFilePath.FullName, "");
+                }
+            }
+
+            // [AbsolutePath, Bindings]
+            var RemovedBindings = IncludedModFilesList.Except(TempModFilesList);
+
+            // Go through each removed file binding and actually perform removing it from included files
+            // We also fix the alignment of all remaining bindings for the modified option during this time
+            foreach (var item in RemovedBindings)
+            {
+                IncludedModFilesList.Remove(item.Key);
+
+                var References = item.Value.Split(';', StringSplitOptions.RemoveEmptyEntries).ToList();
+                foreach (var Reference in References)
+                {
+                    int OptionStart = Reference.IndexOf("O") + 1;
+                    int BindingStart = Reference.IndexOf("B");
+                    string GroupValue = Reference.Substring(1, OptionStart - 2);
+                    string OptionValue = Reference.Substring(OptionStart, BindingStart - OptionStart);
+                    string BindingValue = Reference.Substring(BindingStart + 1);
+
+                    int GroupIdx = int.Parse(GroupValue);
+                    int OptionIdx = int.Parse(OptionValue);
+                    int BindingIdx = int.Parse(BindingValue);
+
+                    var ModOption = ModPackage.ModGroups[GroupIdx].OptionList[OptionIdx];
+                    ModOption.FilePaths.RemoveAt(BindingIdx);
+
+                    for (int i = BindingIdx; i < ModOption.FilePaths.Count; i++)
+                    {
+                        if (!string.IsNullOrEmpty(ModOption.FilePaths[i].SourcePath))
+                        {
+                            string OldIdentifier = $"G{GroupIdx}O{OptionIdx}B{i + 1};";
+                            string NewIdentifier = $"G{GroupIdx}O{OptionIdx}B{i};";
+                            string SourcePathReferences = IncludedModFilesList[ModOption.FilePaths[i].SourcePath];
+                            IncludedModFilesList[ModOption.FilePaths[i].SourcePath] = SourcePathReferences.Replace(OldIdentifier, NewIdentifier);
+                        }
+                    }
+                }
+            }
         }
 
         static void MoveGroup(int CurrentGroupIdx, int NewGroupIdx)
