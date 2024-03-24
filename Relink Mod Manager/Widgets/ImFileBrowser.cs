@@ -98,6 +98,11 @@ namespace Relink_Mod_Manager.Widgets
                 baseDir = null;
             }
 
+            if (baseDir == null && !Directory.Exists(LastDir))
+            {
+                LastDir = Environment.CurrentDirectory;
+            }
+
             ChangeDir(baseDir ?? LastDir);
             RefreshSideBar();
             IsOpen = true;
