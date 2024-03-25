@@ -105,6 +105,25 @@ namespace Relink_Mod_Manager.Windows
                     ImGui.EndTooltip();
                 }
 
+                ImGui.SameLine();
+                if (ImGui.Button("Trim Game File Paths To Data"))
+                {
+                    foreach (var FilePath in ModOption.FilePaths)
+                    {
+                        if (FilePath.DestinationPath.Contains("data\\") && !FilePath.DestinationPath.StartsWith("data\\"))
+                        {
+                            string DestinationPath = FilePath.DestinationPath;
+                            FilePath.DestinationPath = DestinationPath.Substring(DestinationPath.IndexOf("data\\"));
+                        }
+                    }
+                }
+                if (ImGui.BeginItemTooltip())
+                {
+                    ImGui.Text("Automatically trim every Game File Path to begin at the 'data\\' folder.");
+                    ImGui.Text("Useful for when you have a lot of mod files that need trimming.");
+                    ImGui.EndTooltip();
+                }
+
                 if (ImGui.BeginChild("##BindingOptionsChild", new Vector2(ImGui.GetContentRegionAvail().X, ImGui.GetContentRegionAvail().Y - 32)))
                 {
                     for (int i = 0; i < ModOption.FilePaths.Count; i++)
