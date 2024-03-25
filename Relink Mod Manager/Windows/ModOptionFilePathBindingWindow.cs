@@ -213,6 +213,24 @@ namespace Relink_Mod_Manager.Windows
                             }
                             ImGui.SetItemTooltip("This path should always start with 'data\\'");
 
+                            if (ModOption.FilePaths[i].DestinationPath.Contains("data\\") && !ModOption.FilePaths[i].DestinationPath.StartsWith("data\\"))
+                            {
+                                ImGui.TableNextColumn();
+                                ImGui.PushStyleColor(ImGuiCol.Text, Colors.SkyBlue);
+                                FontManager.PushFont("FAS");
+                                if (ImGui.Button($"{FASIcons.CropSimple}##TrimGamePathToDataStart_{i}", new Vector2(ImGui.GetItemRectSize().Y, ImGui.GetItemRectSize().Y)))
+                                {
+                                    string DestinationPath = ModOption.FilePaths[i].DestinationPath;
+                                    if (!string.IsNullOrEmpty(DestinationPath) && DestinationPath.Contains("data\\"))
+                                    {
+                                        ModOption.FilePaths[i].DestinationPath = DestinationPath.Substring(DestinationPath.IndexOf("data\\"));
+                                    }
+                                }
+                                FontManager.PopFont();
+                                ImGui.PopStyleColor();
+                                ImGui.SetItemTooltip("Trim the Game File Path to begin at the 'data\\' folder.");
+                            }
+
                             ImGui.EndTable();
                         }
 

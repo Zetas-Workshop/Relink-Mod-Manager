@@ -146,7 +146,7 @@ namespace Relink_Mod_Manager
             foreach (var item in FilesToAddList)
             {
                 // Trims full path down to inside GBFR/data and changes backslash to forwardslash
-                string str = item.Remove(0, 5).Replace('\\', '/');
+                string str = item.Remove(0, 5).Replace('\\', '/').ToLower();
                 byte[] hashBytes = XxHash64.Hash(Encoding.ASCII.GetBytes(str), 0);
                 ulong hash = BinaryPrimitives.ReadUInt64BigEndian(hashBytes);
 
