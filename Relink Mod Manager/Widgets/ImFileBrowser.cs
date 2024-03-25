@@ -681,6 +681,9 @@ namespace Relink_Mod_Manager.Widgets
                 {
                     SortEntrys(TableSortSpecs);
                 }
+
+                // Always reset the browser scroll to top of directory
+                ImGui.SetScrollY(0);
             }
             catch (Exception e)
             {

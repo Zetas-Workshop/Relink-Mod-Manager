@@ -46,6 +46,7 @@ namespace Relink_Mod_Manager.Windows
         static bool PromptErrorDuringModInstall = false;
         static bool PromptErrorDuringVolatileRestore = false;
         static bool PromptModArchivesMissingDuringInstall = false;
+        static bool PromptErrorLoadingEditModPack = false;
 
         public override void Draw()
         {
@@ -191,6 +192,13 @@ namespace Relink_Mod_Manager.Windows
                 PromptModArchivesMissingDuringInstall = false;
             }
             ShowModArchivesMissingDuringInstallDialog();
+
+            if (PromptErrorLoadingEditModPack)
+            {
+                ImGui.OpenPopup("###ErrorLoadingEditModPack");
+                PromptErrorLoadingEditModPack = false;
+            }
+            ErrorLoadingEditModPackDialog.Draw();
         }
 
         static bool content_window_fullscreen = true;
@@ -404,8 +412,16 @@ namespace Relink_Mod_Manager.Windows
                 {
                     if (modPackage.ModFormatVersion == Util.MOD_FORMAT_VERSION_CURRENT)
                     {
-                        CreateModPackWindow.EditModPackCreation(modPackage, SelectedFilePath);
-                        PromptEditModPackFileBrowser = true;
+                        if (CreateModPackWindow.EditModPackCreation(modPackage, SelectedFilePath))
+                        {
+                            PromptEditModPackFileBrowser = true;
+                        }
+                        else
+                        {
+                            // There was some sort of error loading the mod pack for creation
+                            // Likely is missing files
+                            PromptErrorLoadingEditModPack = true;
+                        }
                     }
                     else if (modPackage.ModFormatVersion < Util.MOD_FORMAT_VERSION_CURRENT)
                     {

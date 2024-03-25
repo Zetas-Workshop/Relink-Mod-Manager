@@ -9,6 +9,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using Vortice.Direct3D11;
+using static Relink_Mod_Manager.Widgets.ImFileBrowser;
 
 namespace Relink_Mod_Manager.Windows
 {
@@ -22,6 +23,7 @@ namespace Relink_Mod_Manager.Windows
         static string BaseModPathDirectory = "";
         static bool IncludeUnreferencedFiles = false;
         static bool PromptModCreationCompleteDialog = false;
+        static bool PromptModCreationErrorDialog = false;
         static string ModCreationError = "";
 
         public static void InitializeNewCreation()
@@ -35,10 +37,11 @@ namespace Relink_Mod_Manager.Windows
             BaseModPathDirectory = "";
             IncludeUnreferencedFiles = false;
             PromptModCreationCompleteDialog = false;
+            PromptModCreationErrorDialog = false;
             ModCreationError = "";
         }
 
-        public static void EditModPackCreation(ModPackage ModPack, string ModPackFilePath)
+        public static bool EditModPackCreation(ModPackage ModPack, string ModPackFilePath)
         {
             ModPackage = ModPack;
             ModPackage.ModFormatVersion = Util.MOD_FORMAT_VERSION_CURRENT;
@@ -49,6 +52,7 @@ namespace Relink_Mod_Manager.Windows
             BaseModPathDirectory = Path.GetDirectoryName(ModPackFilePath);
             IncludeUnreferencedFiles = false;
             PromptModCreationCompleteDialog = false;
+            PromptModCreationErrorDialog = false;
             ModCreationError = "";
 
             // Rebuild the included mod files list as if a directory for a new mod was selected
@@ -64,26 +68,37 @@ namespace Relink_Mod_Manager.Windows
                 }
             }
 
-            // Rebuild the binding trackers for each file
-            for (int groupIdx = 0; groupIdx < ModPackage.ModGroups.Count; groupIdx++)
+            try
             {
-                var group = ModPackage.ModGroups[groupIdx];
-
-                for (int optionIdx = 0; optionIdx < group.OptionList.Count; optionIdx++)
+                // Rebuild the binding trackers for each file
+                for (int groupIdx = 0; groupIdx < ModPackage.ModGroups.Count; groupIdx++)
                 {
-                    var option = group.OptionList[optionIdx];
+                    var group = ModPackage.ModGroups[groupIdx];
 
-                    for (int bindingIdx = 0; bindingIdx < option.FilePaths.Count; bindingIdx++)
+                    for (int optionIdx = 0; optionIdx < group.OptionList.Count; optionIdx++)
                     {
-                        var FilePath = option.FilePaths[bindingIdx];
+                        var option = group.OptionList[optionIdx];
 
-                        FilePath.SourcePath = Path.Combine(BaseModPathDirectory, option.FilePaths[bindingIdx].SourcePath);
+                        for (int bindingIdx = 0; bindingIdx < option.FilePaths.Count; bindingIdx++)
+                        {
+                            var FilePath = option.FilePaths[bindingIdx];
 
-                        string SelectedIdentifier = $"G{groupIdx}O{optionIdx}B{bindingIdx};";
-                        IncludedModFilesList[FilePath.SourcePath] += SelectedIdentifier;
+                            FilePath.SourcePath = Path.Combine(BaseModPathDirectory, option.FilePaths[bindingIdx].SourcePath);
+
+                            string SelectedIdentifier = $"G{groupIdx}O{optionIdx}B{bindingIdx};";
+                            IncludedModFilesList[FilePath.SourcePath] += SelectedIdentifier;
+                        }
                     }
                 }
             }
+            catch (Exception ex)
+            {
+                // Most likely there are missing files in the extracted directory
+                // Files should not be removed until after the Mod Pack is fully opened for editing
+                return false;
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -107,6 +122,7 @@ namespace Relink_Mod_Manager.Windows
             BaseModPathDirectory = Path.GetDirectoryName(ModPackFilePath);
             IncludeUnreferencedFiles = false;
             PromptModCreationCompleteDialog = false;
+            PromptModCreationErrorDialog = false;
             ModCreationError = "";
 
             var CoreModGroup = new ModGroups()
@@ -173,7 +189,6 @@ namespace Relink_Mod_Manager.Windows
                 PromptModCreationCompleteDialog = false;
                 ImGui.OpenPopup("###ModCreationComplete");
             }
-
             ShowModCreationCompleteDialog();
         }
 
@@ -583,12 +598,27 @@ namespace Relink_Mod_Manager.Windows
                     ImFileBrowser.SaveFile((SelectedFilePath) =>
                     {
                         WritePackToFile(SelectedFilePath);
-                        PromptModCreationCompleteDialog = true;
+
+                        if (ModCreationError == "")
+                        {
+                            PromptModCreationCompleteDialog = true;
+                        }
+                        else
+                        {
+                            PromptModCreationErrorDialog = true;
+                        }
                     }, title: "Select the path to save your Mod Package to...", filter: "Mod Package (*.zip)|*.zip", defaultSaveFileName: $"{ModPackage.Name}");
                 }
                 ImGui.EndDisabled();
 
                 ImFileBrowser.Draw();
+
+                if (PromptModCreationErrorDialog)
+                {
+                    ImGui.OpenPopup("###ModCreationError");
+                    PromptModCreationErrorDialog = false;
+                }
+                ShowModCreationErrorDialog();
 
                 ImGui.EndPopup();
             }
@@ -600,28 +630,13 @@ namespace Relink_Mod_Manager.Windows
             ImGui.SetNextWindowPos(new Vector2(io.DisplaySize.X * 0.5f, io.DisplaySize.Y * 0.5f), ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
             ImGui.SetNextWindowSize(new Vector2(0, 0), ImGuiCond.Appearing);
 
-            string DialogTitle = "Mod Pack Created";
-            if (ModCreationError != "")
-            {
-                DialogTitle = "Error Creating Mod Pack";
-                ImGui.PushStyleColor(ImGuiCol.TitleBgActive, Colors.DarkRed);
-            }
-            else
-            {
-                ImGui.PushStyleColor(ImGuiCol.TitleBgActive, Colors.DarkGreen);
-            }
+            ImGui.PushStyleColor(ImGuiCol.TitleBgActive, Colors.DarkGreen);
 
-            if (Util.BeginPopupModal($"{DialogTitle}###ModCreationComplete", ImGuiWindowFlags.None))
+            if (Util.BeginPopupModal("Mod Pack Created###ModCreationComplete", ImGuiWindowFlags.None))
             {
                 if (ModCreationError == "")
                 {
                     ImGui.Text("Your Mod Pack has been successfully created!");
-                }
-                else
-                {
-                    ImGui.Text("There was an error creating your Mod Pack!");
-                    ImGui.SeparatorText("Error Details");
-                    ImGui.TextWrapped(ModCreationError);
                 }
 
                 ImGui.Separator();
@@ -631,6 +646,41 @@ namespace Relink_Mod_Manager.Windows
                     ModCreationError = "";
                     ImGui.CloseCurrentPopup();
                 }
+                ImGui.EndPopup();
+            }
+
+            ImGui.PopStyleColor();
+        }
+
+        static void ShowModCreationErrorDialog()
+        {
+            var io = ImGui.GetIO();
+            ImGui.SetNextWindowPos(new Vector2(io.DisplaySize.X * 0.5f, io.DisplaySize.Y * 0.5f), ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
+            ImGui.SetNextWindowSize(new Vector2(600, 0), ImGuiCond.Appearing);
+
+            ImGui.PushStyleColor(ImGuiCol.TitleBgActive, Colors.DarkRed);
+
+            if (Util.BeginPopupModal($"Error Creating Mod Pack###ModCreationError", ImGuiWindowFlags.None))
+            {
+                ImGui.Text("There was an error creating your Mod Pack!");
+                ImGui.SeparatorText("Error Details");
+                string ErrorFirstLine = ModCreationError.Substring(0, ModCreationError.IndexOf(Environment.NewLine));
+                ImGui.TextWrapped($"{ErrorFirstLine}");
+
+                ImGui.Separator();
+
+                if (ImGui.Button("OK", new Vector2(Util.BUTTON_ITEM_WIDTH_BASE, 0)))
+                {
+                    ModCreationError = "";
+                    ImGui.CloseCurrentPopup();
+                }
+
+                ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - Util.BUTTON_ITEM_WIDTH_SECOND);
+                if (ImGui.Button("Copy Full Error Text", new Vector2(Util.BUTTON_ITEM_WIDTH_SECOND, 0)))
+                {
+                    ImGui.SetClipboardText(ModCreationError);
+                }
+
                 ImGui.EndPopup();
             }
 
@@ -651,8 +701,11 @@ namespace Relink_Mod_Manager.Windows
                 }
                 else
                 {
-                    TempModFilesList.Add(ModFilePath.FullName, "");
-                    IncludedModFilesList.Add(ModFilePath.FullName, "");
+                    if (ModFilePath.Name != "ModConfig.json")
+                    {
+                        TempModFilesList.Add(ModFilePath.FullName, "");
+                        IncludedModFilesList.Add(ModFilePath.FullName, "");
+                    }
                 }
             }
 
@@ -898,6 +951,23 @@ namespace Relink_Mod_Manager.Windows
             }
         }
 
+        static void MakeRelativeBindingsAbsolute()
+        {
+            foreach (var group in ModPackage.ModGroups)
+            {
+                foreach (var option in group.OptionList)
+                {
+                    foreach (var paths in option.FilePaths)
+                    {
+                        if (!string.IsNullOrEmpty(paths.SourcePath) && !paths.SourcePath.StartsWith(BaseModPathDirectory))
+                        {
+                            paths.SourcePath = Path.Combine(BaseModPathDirectory, paths.SourcePath);
+                        }
+                    }
+                }
+            }
+        }
+
         static void WritePackToFile(string OutputArchivePath)
         {
             // Before the ModPackage object can be written, the absolute ModFilePath's must be converted to relative
@@ -946,6 +1016,8 @@ namespace Relink_Mod_Manager.Windows
             catch (Exception ex)
             {
                 ModCreationError = ex.ToString();
+                // Restore our binding paths to how they were prior to creation attempt
+                MakeRelativeBindingsAbsolute();
             }
         }
     }
