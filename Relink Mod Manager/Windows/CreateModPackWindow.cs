@@ -25,9 +25,27 @@ namespace Relink_Mod_Manager.Windows
         static bool PromptModCreationCompleteDialog = false;
         static bool PromptModCreationErrorDialog = false;
         static string ModCreationError = "";
+        static bool PromptModCreationValidationDialog = false;
+        static HashSet<string> ModValidationWarnings = new HashSet<string>();
+        static bool ContinueModPackSaveProcess = false;
+        static string SelectedModPackSavePath = "";
+
+        static void InitializeTrackers()
+        {
+            IncludeUnreferencedFiles = false;
+            PromptModCreationCompleteDialog = false;
+            PromptModCreationErrorDialog = false;
+            ModCreationError = "";
+            PromptModCreationValidationDialog = false;
+            ModValidationWarnings = new HashSet<string>();
+            ContinueModPackSaveProcess = false;
+            SelectedModPackSavePath = "";
+        }
 
         public static void InitializeNewCreation()
         {
+            InitializeTrackers();
+
             ModPackage = new ModPackage();
             ModPackage.ModFormatVersion = Util.MOD_FORMAT_VERSION_CURRENT;
 
@@ -35,14 +53,12 @@ namespace Relink_Mod_Manager.Windows
             GroupOptionNameInput = new List<string>();
             IncludedModFilesList = new Dictionary<string, string>();
             BaseModPathDirectory = "";
-            IncludeUnreferencedFiles = false;
-            PromptModCreationCompleteDialog = false;
-            PromptModCreationErrorDialog = false;
-            ModCreationError = "";
         }
 
         public static bool EditModPackCreation(ModPackage ModPack, string ModPackFilePath)
         {
+            InitializeTrackers();
+
             ModPackage = ModPack;
             ModPackage.ModFormatVersion = Util.MOD_FORMAT_VERSION_CURRENT;
 
@@ -50,10 +66,6 @@ namespace Relink_Mod_Manager.Windows
             GroupOptionNameInput = Enumerable.Repeat("", ModPack.ModGroups.Count).ToList();
             IncludedModFilesList = new Dictionary<string, string>();
             BaseModPathDirectory = Path.GetDirectoryName(ModPackFilePath);
-            IncludeUnreferencedFiles = false;
-            PromptModCreationCompleteDialog = false;
-            PromptModCreationErrorDialog = false;
-            ModCreationError = "";
 
             // Rebuild the included mod files list as if a directory for a new mod was selected
             var SelectedModDirectoryInfo = new DirectoryInfo(BaseModPathDirectory);
@@ -120,10 +132,6 @@ namespace Relink_Mod_Manager.Windows
             GroupOptionNameInput = [ "" ];
             IncludedModFilesList = new Dictionary<string, string>();
             BaseModPathDirectory = Path.GetDirectoryName(ModPackFilePath);
-            IncludeUnreferencedFiles = false;
-            PromptModCreationCompleteDialog = false;
-            PromptModCreationErrorDialog = false;
-            ModCreationError = "";
 
             var CoreModGroup = new ModGroups()
             {
@@ -597,21 +605,37 @@ namespace Relink_Mod_Manager.Windows
                 {
                     ImFileBrowser.SaveFile((SelectedFilePath) =>
                     {
-                        WritePackToFile(SelectedFilePath);
-
-                        if (ModCreationError == "")
-                        {
-                            PromptModCreationCompleteDialog = true;
-                        }
-                        else
-                        {
-                            PromptModCreationErrorDialog = true;
-                        }
+                        SelectedModPackSavePath = SelectedFilePath;
+                        PromptModCreationValidationDialog = !PerformModPackValidation();
+                        ContinueModPackSaveProcess = !PromptModCreationValidationDialog;
                     }, title: "Select the path to save your Mod Package to...", filter: "Mod Package (*.zip)|*.zip", defaultSaveFileName: $"{ModPackage.Name}");
                 }
                 ImGui.EndDisabled();
 
                 ImFileBrowser.Draw();
+
+                if (ContinueModPackSaveProcess)
+                {
+                    ContinueModPackSaveProcess = false;
+
+                    WritePackToFile(SelectedModPackSavePath);
+
+                    if (ModCreationError == "")
+                    {
+                        PromptModCreationCompleteDialog = true;
+                    }
+                    else
+                    {
+                        PromptModCreationErrorDialog = true;
+                    }
+                }
+
+                if (PromptModCreationValidationDialog)
+                {
+                    ImGui.OpenPopup("###ModCreationValidation");
+                    PromptModCreationValidationDialog = false;
+                }
+                ShowModCreationValidationDialog();
 
                 if (PromptModCreationErrorDialog)
                 {
@@ -687,6 +711,51 @@ namespace Relink_Mod_Manager.Windows
             ImGui.PopStyleColor();
         }
 
+        static void ShowModCreationValidationDialog()
+        {
+            var io = ImGui.GetIO();
+            ImGui.SetNextWindowPos(new Vector2(io.DisplaySize.X * 0.5f, io.DisplaySize.Y * 0.5f), ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
+            ImGui.SetNextWindowSize(new Vector2(650, 0), ImGuiCond.Appearing);
+
+            ImGui.PushStyleColor(ImGuiCol.TitleBgActive, Colors.Goldenrod_Transparent);
+
+            if (Util.BeginPopupModal($"Mod Creation Validator Warning###ModCreationValidation", ImGuiWindowFlags.None))
+            {
+                ImGui.Text("There was at least one Mod Pack Validation warning found:");
+
+                ImGui.Separator();
+
+                foreach (var Warning in ModValidationWarnings)
+                {
+                    ImGui.TextWrapped($"- {Warning}");
+                }
+
+                ImGui.Separator();
+
+                ImGui.TextWrapped("Validation warnings will not stop you from creating a Mod Pack. However, verify they are intentional.");
+
+                ImGui.Separator();
+
+                if (ImGui.Button("Create Mod Pack", new Vector2(Util.BUTTON_ITEM_WIDTH_SECOND, 0)))
+                {
+                    ModValidationWarnings.Clear();
+                    ContinueModPackSaveProcess = true;
+                    ImGui.CloseCurrentPopup();
+                }
+
+                ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - Util.BUTTON_ITEM_WIDTH_SECOND);
+                if (ImGui.Button("Cancel Creation", new Vector2(Util.BUTTON_ITEM_WIDTH_SECOND, 0)))
+                {
+                    ModValidationWarnings.Clear();
+                    ImGui.CloseCurrentPopup();
+                }
+
+                ImGui.EndPopup();
+            }
+
+            ImGui.PopStyleColor();
+        }
+
         static void RefreshModWorkingDirectory()
         {
             var SelectedModDirectoryInfo = new DirectoryInfo(BaseModPathDirectory);
@@ -746,6 +815,61 @@ namespace Relink_Mod_Manager.Windows
                     }
                 }
             }
+        }
+
+        static bool PerformModPackValidation()
+        {
+            if (string.IsNullOrWhiteSpace(ModPackage.Version))
+            {
+                ModValidationWarnings.Add("Mod Pack Version was not set.");
+            }
+
+            foreach (var group in ModPackage.ModGroups)
+            {
+                if (string.IsNullOrEmpty(group.GroupName))
+                {
+                    ModValidationWarnings.Add("One or more Mod Group [Name] was not set to a value.");
+                }
+
+                if (group.OptionList.Count == 0)
+                {
+                    ModValidationWarnings.Add("One or more Mod Groups has no Mod Options added.");
+                }
+
+                foreach (var option in group.OptionList)
+                {
+                    if (string.IsNullOrEmpty(option.Name))
+                    {
+                        ModValidationWarnings.Add("One or more Mod Option [Name] was not set to a value.");
+                    }
+
+                    // We don't warn about a Mod Option having no Bindings as having a Default/Omitted option is pretty likely
+
+                    foreach (var path in option.FilePaths)
+                    {
+                        if (string.IsNullOrEmpty(path.SourcePath))
+                        {
+                            ModValidationWarnings.Add("One or more Mod Option [Mod File Path] Bindings was not set to a value.");
+                        }
+
+                        if (string.IsNullOrEmpty(path.DestinationPath))
+                        {
+                            ModValidationWarnings.Add("One or more Mod Option [Game File Path] Bindings was not set to a value.");
+                        }
+                        else if (!path.DestinationPath.StartsWith("data\\"))
+                        {
+                            ModValidationWarnings.Add("One or more Mod Option [Game File Path] Bindings did not start with 'data\\'.");
+                        }
+                    }
+                }
+            }
+
+            if (ModValidationWarnings.Count > 0)
+            {
+                return false;
+            }
+
+            return true;
         }
 
         static void MoveGroup(int CurrentGroupIdx, int NewGroupIdx)
