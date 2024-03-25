@@ -912,7 +912,7 @@ namespace Relink_Mod_Manager.Windows
                                         fileEntry.ExtractToFile(AbsolutePath, true);
                                         // Register the file before processing it as its now on disk and needs to be cleaned up if anything goes wrong
                                         InstalledFilePaths.Add(FilePaths.DestinationPath);
-                                        dataManager.ProcessFile(AbsolutePath);
+                                        dataManager.ProcessFile(AbsolutePath, FilePaths.SourcePath);
                                     }
                                     catch (Exception ex)
                                     {

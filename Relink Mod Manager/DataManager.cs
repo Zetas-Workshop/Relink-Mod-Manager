@@ -165,13 +165,26 @@ namespace Relink_Mod_Manager
             return WriteUpdatedDataIndexFile();
         }
 
-        public void ProcessFile(string FilePath)
+        /// <summary>
+        /// This is run on an already extracted file and will overwrite it with changes if needed.
+        /// </summary>
+        /// <param name="FilePath">Absolute path to file that should be processed and updated.</param>
+        /// <param name="SourcePath">Path to the original file, used for checking changes in path/extension.</param>
+        public void ProcessFile(string FilePath, string SourcePath = "")
         {
             switch (Path.GetExtension(FilePath))
             {
                 case ".minfo":
                     {
                         UpgradeMInfoData(FilePath);
+                        break;
+                    }
+                case ".msg":
+                    {
+                        if (Path.GetExtension(SourcePath) == ".json")
+                        {
+                            ConvertJsonToMsgPack(FilePath);
+                        }
                         break;
                     }
                 default:
@@ -202,6 +215,20 @@ namespace Relink_Mod_Manager
             {
                 // Error encountered, leaving file as-is
                 Console.WriteLine($"Error trying to upgrade MInfo data: {ex.Message}");
+            }
+        }
+
+        void ConvertJsonToMsgPack(string FilePath)
+        {
+            try
+            {
+                string JsonContent = File.ReadAllText(FilePath);
+                var MsgContent = MessagePack.MessagePackSerializer.ConvertFromJson(JsonContent);
+                File.WriteAllBytes(FilePath, MsgContent);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error trying to convert JSON file to MsgPack: {ex.Message}");
             }
         }
 
