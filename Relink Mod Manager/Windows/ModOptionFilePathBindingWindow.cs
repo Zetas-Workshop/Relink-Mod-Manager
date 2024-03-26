@@ -16,6 +16,8 @@ namespace Relink_Mod_Manager.Windows
         static string BaseModPathDirectory = "";
         static int GroupIdx = 0;
         static int OptionIdx = 0;
+        static HashSet<string> FileDirectoryFilter = new HashSet<string>();
+        static string SelectedFilter = "{No Filter}";
 
         public static void Draw()
         {
@@ -29,13 +31,20 @@ namespace Relink_Mod_Manager.Windows
             BaseModPathDirectory = baseModPathDirectory;
             GroupIdx = groupIdx;
             OptionIdx = optionIdx;
+            FileDirectoryFilter = new HashSet<string>() { "{No Filter}" };
+            SelectedFilter = "{No Filter}";
+
+            foreach (var FileEntry in IncludedModFilesList)
+            {
+                FileDirectoryFilter.Add(Path.GetDirectoryName(FileEntry.Key));
+            }
         }
 
         static void SubmitContent()
         {
             var io = ImGui.GetIO();
             ImGui.SetNextWindowPos(new Vector2(io.DisplaySize.X * 0.5f, io.DisplaySize.Y * 0.5f), ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
-            ImGui.SetNextWindowSize(new Vector2(820, 580), ImGuiCond.Appearing);
+            ImGui.SetNextWindowSize(new Vector2(920, 680), ImGuiCond.Appearing);
             ImGui.SetNextWindowSizeConstraints(new Vector2(780, 480), new Vector2(float.PositiveInfinity, float.PositiveInfinity));
 
             bool p_open = true;
@@ -66,7 +75,7 @@ namespace Relink_Mod_Manager.Windows
                 ImGui.Separator();
 
                 ImGui.Text("Option Description:");
-                ImGui.SetNextItemWidth(750f);
+                ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
                 string OptionDescription = ModOption.Description;
                 if (ImGui.InputText("##OptionDescriptionInput", ref OptionDescription, 256))
                 {
@@ -81,12 +90,39 @@ namespace Relink_Mod_Manager.Windows
                 ImGui.SetItemTooltip("Create a new binding between a Mod File Path and Game File Path.\nNote: Game File Paths should start with 'data\\'");
 
                 ImGui.SameLine();
-                if (ImGui.Button("Add All Unreferenced Files As New Bindings"))
+                if (ImGui.Button("Trim Game File Paths"))
+                {
+                    foreach (var FilePath in ModOption.FilePaths)
+                    {
+                        if (FilePath.DestinationPath.Contains("\\data\\") && !FilePath.DestinationPath.StartsWith("data\\"))
+                        {
+                            string DestinationPath = FilePath.DestinationPath;
+                            FilePath.DestinationPath = DestinationPath.Substring(DestinationPath.IndexOf("\\data\\") + 1);
+                        }
+                    }
+                }
+                if (ImGui.BeginItemTooltip())
+                {
+                    ImGui.Text("Automatically trim every Game File Path to begin at the 'data\\' folder.");
+                    ImGui.Text("Useful for when you have a lot of mod files that need trimming.");
+                    ImGui.EndTooltip();
+                }
+
+                ImGui.SameLine();
+                if (ImGui.Button("Add Unreferenced Files As Bindings"))
                 {
                     foreach (var FileEntry in IncludedModFilesList)
                     {
                         if (string.IsNullOrEmpty(FileEntry.Value))
                         {
+                            if (!string.IsNullOrEmpty(SelectedFilter) && SelectedFilter != "{No Filter}")
+                            {
+                                if (!FileEntry.Key.StartsWith(SelectedFilter))
+                                {
+                                    continue;
+                                }
+                            }
+
                             ModOption.FilePaths.Add(new ModFilePath());
                             int BindingIdx = ModOption.FilePaths.Count - 1;
 
@@ -105,22 +141,38 @@ namespace Relink_Mod_Manager.Windows
                     ImGui.EndTooltip();
                 }
 
-                ImGui.SameLine();
-                if (ImGui.Button("Trim Game File Paths To Data"))
+                string FilterFilter = "{No Filter}";
+                if (!string.IsNullOrEmpty(SelectedFilter) && SelectedFilter != "{No Filter}")
                 {
-                    foreach (var FilePath in ModOption.FilePaths)
+                    FilterFilter = SelectedFilter.Remove(0, BaseModPathDirectory.Length + 1);
+                }
+                ImGui.SameLine();
+                ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+                if (ImGui.BeginCombo("##UnreferencedFilesFilter", FilterFilter, ImGuiComboFlags.None))
+                {
+                    foreach (var DirFilter in FileDirectoryFilter)
                     {
-                        if (FilePath.DestinationPath.Contains("data\\") && !FilePath.DestinationPath.StartsWith("data\\"))
+                        if (DirFilter != BaseModPathDirectory)
                         {
-                            string DestinationPath = FilePath.DestinationPath;
-                            FilePath.DestinationPath = DestinationPath.Substring(DestinationPath.IndexOf("data\\"));
+                            string DisplayText = "{No Filter}";
+                            if (DirFilter != "{No Filter}")
+                            {
+                                DisplayText = $"{DirFilter.Remove(0, BaseModPathDirectory.Length + 1)}\\*";
+                            }
+                            if (ImGui.Selectable($"{DisplayText}"))
+                            {
+                                SelectedFilter = DirFilter;
+                            }
                         }
                     }
+                    
+                    ImGui.EndCombo();
                 }
                 if (ImGui.BeginItemTooltip())
                 {
-                    ImGui.Text("Automatically trim every Game File Path to begin at the 'data\\' folder.");
-                    ImGui.Text("Useful for when you have a lot of mod files that need trimming.");
+                    ImGui.TextDisabled($"{FilterFilter}");
+                    ImGui.Text("Filter for what files to create New Bindings for when 'Add Unreferenced Files' is used.");
+                    ImGui.Text("Leaving set to '{No Filter}' will include all files.");
                     ImGui.EndTooltip();
                 }
 
@@ -232,7 +284,7 @@ namespace Relink_Mod_Manager.Windows
                             }
                             ImGui.SetItemTooltip("This path should always start with 'data\\'");
 
-                            if (ModOption.FilePaths[i].DestinationPath.Contains("data\\") && !ModOption.FilePaths[i].DestinationPath.StartsWith("data\\"))
+                            if (ModOption.FilePaths[i].DestinationPath.Contains("\\data\\") && !ModOption.FilePaths[i].DestinationPath.StartsWith("data\\"))
                             {
                                 ImGui.TableNextColumn();
                                 ImGui.PushStyleColor(ImGuiCol.Text, Colors.SkyBlue);
@@ -240,9 +292,9 @@ namespace Relink_Mod_Manager.Windows
                                 if (ImGui.Button($"{FASIcons.CropSimple}##TrimGamePathToDataStart_{i}", new Vector2(ImGui.GetItemRectSize().Y, ImGui.GetItemRectSize().Y)))
                                 {
                                     string DestinationPath = ModOption.FilePaths[i].DestinationPath;
-                                    if (!string.IsNullOrEmpty(DestinationPath) && DestinationPath.Contains("data\\"))
+                                    if (!string.IsNullOrEmpty(DestinationPath) && DestinationPath.Contains("\\data\\"))
                                     {
-                                        ModOption.FilePaths[i].DestinationPath = DestinationPath.Substring(DestinationPath.IndexOf("data\\"));
+                                        ModOption.FilePaths[i].DestinationPath = DestinationPath.Substring(DestinationPath.IndexOf("\\data\\") + 1);
                                     }
                                 }
                                 FontManager.PopFont();
