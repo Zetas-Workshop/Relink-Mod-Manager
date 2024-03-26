@@ -156,7 +156,7 @@ namespace Relink_Mod_Manager.Windows
                 ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
                 if (ImGui.BeginCombo("##UnreferencedFilesFilter", FilterFilter, ImGuiComboFlags.None))
                 {
-                    foreach (var DirFilter in FileDirectoryFilter)
+                    foreach (var DirFilter in FileDirectoryFilter.OrderBy(str => str))
                     {
                         if (DirFilter != BaseModPathDirectory)
                         {
