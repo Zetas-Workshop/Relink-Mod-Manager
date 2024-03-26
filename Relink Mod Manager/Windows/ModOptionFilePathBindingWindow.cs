@@ -184,6 +184,8 @@ namespace Relink_Mod_Manager.Windows
 
                 if (ImGui.BeginChild("##BindingOptionsChild", new Vector2(ImGui.GetContentRegionAvail().X, ImGui.GetContentRegionAvail().Y - 32)))
                 {
+                    var style = ImGui.GetStyle();
+
                     for (int i = 0; i < ModOption.FilePaths.Count; i++)
                     {
                         bool QueuedGroupRemoval = false;
@@ -201,7 +203,7 @@ namespace Relink_Mod_Manager.Windows
                             var LabelWidth = ImGui.CalcTextSize("Game File Path:").X;
                             ImGui.TableSetupColumn("##LableColumn", ImGuiTableColumnFlags.WidthFixed, LabelWidth);
                             float ButtonCount = 2.0f;
-                            var InputBindingColumnWidth = Util.INPUT_ITEM_WIDTH_BASE - LabelWidth - ImGui.GetFrameHeight() - ImGui.GetItemRectSize().Y * ButtonCount;
+                            var InputBindingColumnWidth = ImGui.GetContentRegionAvail().X - LabelWidth - ImGui.GetFrameHeight() - ImGui.GetItemRectSize().Y * ButtonCount - style.ItemSpacing.X;
                             ImGui.TableSetupColumn("##OptionBinding", ImGuiTableColumnFlags.WidthFixed, InputBindingColumnWidth);
                             ImGui.TableSetupColumn("##BindingCopyDown", ImGuiTableColumnFlags.WidthFixed, ImGui.GetItemRectSize().Y);
                             ImGui.TableSetupColumn("##BindingRemove", ImGuiTableColumnFlags.WidthFixed, ImGui.GetItemRectSize().Y);
