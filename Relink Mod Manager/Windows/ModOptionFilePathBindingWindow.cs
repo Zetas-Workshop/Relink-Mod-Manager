@@ -36,7 +36,13 @@ namespace Relink_Mod_Manager.Windows
 
             foreach (var FileEntry in IncludedModFilesList)
             {
-                FileDirectoryFilter.Add(Path.GetDirectoryName(FileEntry.Key));
+                var fragments = Path.GetDirectoryName(FileEntry.Key).Remove(0, BaseModPathDirectory.Length + 1).Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+                string BuildingPath = BaseModPathDirectory;
+                foreach (var Fragment in fragments)
+                {
+                    BuildingPath = Path.Combine(BuildingPath, Fragment);
+                    FileDirectoryFilter.Add(BuildingPath);
+                }
             }
         }
 
