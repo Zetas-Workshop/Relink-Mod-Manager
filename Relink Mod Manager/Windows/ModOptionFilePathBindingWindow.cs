@@ -165,7 +165,10 @@ namespace Relink_Mod_Manager.Windows
                             {
                                 DisplayText = $"{DirFilter.Remove(0, BaseModPathDirectory.Length + 1)}\\*";
                             }
-                            if (ImGui.Selectable($"{DisplayText}"))
+
+                            bool is_selected = DisplayText == $"{FilterFilter}\\*";
+
+                            if (ImGui.Selectable($"{DisplayText}", is_selected))
                             {
                                 SelectedFilter = DirFilter;
                             }
