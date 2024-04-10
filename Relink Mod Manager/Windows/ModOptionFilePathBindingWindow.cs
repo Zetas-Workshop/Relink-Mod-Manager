@@ -58,7 +58,14 @@ namespace Relink_Mod_Manager.Windows
             ImGui.SetNextWindowSizeConstraints(new Vector2(780, 480), new Vector2(float.PositiveInfinity, float.PositiveInfinity));
 
             bool p_open = true;
-            if (ImGui.BeginPopupModal($"Mod Option Bindings - [Group {GroupIdx} > Option {OptionIdx}]{EDITOR_WINDOW_ID}", ref p_open))
+            string OptionNameValue = "";
+            if (ModOption != null && ModOption.Name.Length > 0 && !ModOption.Name.Contains("#"))
+            {
+                // Only display the Option string if it's valid and doesn't contain an ImGui escape code
+                OptionNameValue = $"[{ModOption.Name}]";
+            }
+
+            if (ImGui.BeginPopupModal($"Mod Option Bindings - [Group {GroupIdx} > Option {OptionIdx}]{OptionNameValue}{EDITOR_WINDOW_ID}", ref p_open))
             {
                 ImGui.AlignTextToFramePadding();
 
