@@ -38,6 +38,24 @@ namespace Relink_Mod_Manager.Windows
                     WriteInstalledPathsFile(new List<string>(), Settings.ManagerAppDataDirectory);
                     WriteVolatileBackupsFile(new List<string>(), Settings.ManagerAppDataDirectory);
 
+                    // Try to clear out potential stale data_volatile_backups but only silently fail if it errors
+                    try
+                    {
+                        string GameDirectory = Path.GetDirectoryName(Settings.GameExecutableFilePath);
+                        string VolatileBackupsDir = Path.Combine(GameDirectory, "data_volatile_backups");
+                        if (Directory.Exists(VolatileBackupsDir))
+                        {
+                            foreach (string directory in Directory.GetDirectories(VolatileBackupsDir))
+                            {
+                                Directory.Delete(directory, true);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error deleting data_volatile_backups contents: {ex.Message}");
+                    }
+
                     ImGui.CloseCurrentPopup();
                 }
                 ImGui.SetItemTooltip("Clears list of registered mods.\nOnly to be used if mods were removed outside of the manager or files have been restored via Steam.");
