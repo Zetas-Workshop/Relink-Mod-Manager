@@ -88,7 +88,12 @@ namespace Relink_Mod_Manager.Windows
                 {
                     if (ImGui.BeginTabItem("Settings"))
                     {
-                        SettingsTab();
+                        if (ImGui.BeginChild("##ModSettingsChild"))
+                        {
+                            SettingsTab();
+
+                            ImGui.EndChild();
+                        }
 
                         ImGui.EndTabItem();
                     }
@@ -98,7 +103,12 @@ namespace Relink_Mod_Manager.Windows
                     {
                         if (ImGui.BeginTabItem("Description"))
                         {
-                            DescriptionTab();
+                            if (ImGui.BeginChild("##ModDescriptionChild"))
+                            {
+                                DescriptionTab();
+
+                                ImGui.EndChild();
+                            }
 
                             ImGui.EndTabItem();
                         }
@@ -106,14 +116,25 @@ namespace Relink_Mod_Manager.Windows
 
                     if (ImGui.BeginTabItem("Conflicts"))
                     {
-                        ConflictsTab();
+
+                        if (ImGui.BeginChild("##ModConflictsChild"))
+                        {
+                            ConflictsTab();
+
+                            ImGui.EndChild();
+                        }
 
                         ImGui.EndTabItem();
                     }
 
                     if (ImGui.BeginTabItem("Metadata"))
                     {
-                        MetadataTab();
+                        if (ImGui.BeginChild("##ModMetadataChild"))
+                        {
+                            MetadataTab();
+
+                            ImGui.EndChild();
+                        }
 
                         ImGui.EndTabItem();
                     }
