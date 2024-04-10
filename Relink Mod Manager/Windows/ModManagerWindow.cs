@@ -357,8 +357,18 @@ namespace Relink_Mod_Manager.Windows
                         {
                             // TODO: Eventually support not using Mod Storage and perform an already-imported check for updating mods
 
-                            string NewPath = Path.Combine(Settings.ModArchivesDirectory, Path.GetFileName(mod));
+                            string NewPath = Path.Combine(Settings.ModArchivesDirectory, $"{modPackage.Name}.zip");
                             if (File.Exists(NewPath))
+                            {
+                                AlreadyImportedModsList.Add(mod);
+                                PromptModAlreadyImported = true;
+                                continue;
+                            }
+
+                            // Use Mod Name for duplicate checking since Nexus Mods will append additional data to the archive name
+                            // Which breaks exact file name duplication checking and we can't reliably substring it
+                            var ExistingModIdx = Settings.ModList.FindIndex(item => item.Name == modPackage.Name);
+                            if (ExistingModIdx != -1)
                             {
                                 AlreadyImportedModsList.Add(mod);
                                 PromptModAlreadyImported = true;
@@ -374,7 +384,7 @@ namespace Relink_Mod_Manager.Windows
                                 ModArchivePath = (Settings.CopyModArchivesToStorage ? NewPath : mod)
                             };
                             Settings.ModList.Add(modEntry);
-                            CopyModArchiveToStorage(mod);
+                            CopyModArchiveToStorage(mod, NewPath);
 
                             Settings.Save();
                         }
@@ -656,15 +666,23 @@ namespace Relink_Mod_Manager.Windows
                             string FinalArchivePath = "";
                             string FinalStoragePath = "";
 
-                            for (int i = 2; i < 10; i++)
+                            for (int i = 1; i < 10; i++)
                             {
-                                string NewFileName = $"{ModConfig.ModName} ({i}).zip";
+                                string NewModName = $"{ModConfig.ModName} ({i})";
+                                if (i == 1)
+                                {
+                                    // Start our first attempt with the original name before adding numbers
+                                    NewModName = $"{ModConfig.ModName}";
+                                }
+                                string NewFileName = $"{NewModName}.zip";
+
                                 string NewAbsolutePath = Path.Combine(Settings.ModArchivesDirectory, NewFileName);
                                 string UpgradeAbsolutePath = Path.Combine(ModUpgradeDir, NewFileName);
                                 if (!File.Exists(NewAbsolutePath) && !File.Exists(UpgradeAbsolutePath))
                                 {
                                     // We've found a new valid name, time to use it
                                     Directory.CreateDirectory(ModUpgradeDir);
+                                    CreateModPackWindow.ExternalCreationUpdateModPackageName(NewModName);
                                     IsUpgradeSuccess = CreateModPackWindow.WriteReloadedToModPack(UpgradeAbsolutePath);
                                     FinalArchivePath = UpgradeAbsolutePath;
                                     FinalStoragePath = NewAbsolutePath;

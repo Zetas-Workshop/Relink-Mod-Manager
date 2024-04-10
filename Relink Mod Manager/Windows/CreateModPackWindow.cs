@@ -168,6 +168,11 @@ namespace Relink_Mod_Manager.Windows
             ModPackage.ModGroups.Add(CoreModGroup);
         }
 
+        public static void ExternalCreationUpdateModPackageName(string NewModName)
+        {
+            ModPackage.Name = NewModName;
+        }
+
         /// <summary>
         /// Writes the currently configured Reloaded II parsed Mod Pack to the specified path.
         /// </summary>

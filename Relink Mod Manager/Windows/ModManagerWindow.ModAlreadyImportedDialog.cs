@@ -49,7 +49,7 @@ namespace Relink_Mod_Manager.Windows
                         string ModItemArchivePath = ModItem;
                         if (Settings.CopyModArchivesToStorage)
                         {
-                            ModItemArchivePath = Path.Combine(Settings.ModArchivesDirectory, Path.GetFileName(ModItem));
+                            ModItemArchivePath = Path.Combine(Settings.ModArchivesDirectory, $"{modPackage.Name}.zip");
                         }
 
                         ModEntry modEntry = new ModEntry()
@@ -103,14 +103,21 @@ namespace Relink_Mod_Manager.Windows
                             Settings.ModList.Add(modEntry);
                         }
 
-                        CopyModArchiveToStorage(ModItem);
+                        CopyModArchiveToStorage(ModItem, ModItemArchivePath);
 
                         Settings.Save();
                     }
 
                     AlreadyImportedModsList.Clear();
 
-                    UpdateModDetailsPanel(Settings.ModList[SelectedModIndex]);
+                    if (SelectedModIndex < 0)
+                    {
+                        UpdateModDetailsPanel(new ModEntry());
+                    }
+                    else
+                    {
+                        UpdateModDetailsPanel(Settings.ModList[SelectedModIndex]);
+                    }
 
                     ImGui.CloseCurrentPopup();
                 }
@@ -122,20 +129,20 @@ namespace Relink_Mod_Manager.Windows
                     {
                         // Determine the next valid incremented file name to store this mod as
                         // Expected to only run this loop at most 5 times per conflict ever so it will be fast enough
+                        ModPackage modPackage = ReadModArchive(ModItem);
+
                         for (int i = 2; i < 999; i++)
                         {
-                            string NewFileName = $"{Path.GetFileNameWithoutExtension(ModItem)} ({i}){Path.GetExtension(ModItem)}";
+                            string NewFileName = $"{modPackage.Name} ({i}){Path.GetExtension(ModItem)}";
                             string NewAbsolutePath = Path.Combine(Settings.ModArchivesDirectory, NewFileName);
                             if (!File.Exists(NewAbsolutePath))
                             {
                                 // We've found a new valid name, time to use it
                                 CopyModArchiveToStorage(ModItem, NewAbsolutePath);
 
-                                ModPackage modPackage = ReadModArchive(ModItem);
-
                                 ModEntry modEntry = new ModEntry()
                                 {
-                                    Name = modPackage.Name,
+                                    Name = $"{modPackage.Name} ({i})",
                                     ModPack = modPackage,
                                     IsEnabled = false,
                                     IsUsingArchiveStorage = Settings.CopyModArchivesToStorage,
